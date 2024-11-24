@@ -53,7 +53,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 		passwordEnvKey       = "ISUCON13_MYSQL_DIALCONFIG_PASSWORD"
 		dbNameEnvKey         = "ISUCON13_MYSQL_DIALCONFIG_DATABASE"
 		parseTimeEnvKey      = "ISUCON13_MYSQL_DIALCONFIG_PARSETIME"
-		interpolateParamsKey = "ISUCON13_MYSQL_DIALCONFIG_INTERPOLATE"
+		interpolateParamsKey = "ISUCON13_MYSQL_DIALCONFIG_INTERPOLATE_PARAMS"
 	)
 
 	conf := mysql.NewConfig()
