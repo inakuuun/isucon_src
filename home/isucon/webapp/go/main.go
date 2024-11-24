@@ -46,13 +46,14 @@ type InitializeResponse struct {
 
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	const (
-		networkTypeEnvKey = "ISUCON13_MYSQL_DIALCONFIG_NET"
-		addrEnvKey        = "ISUCON13_MYSQL_DIALCONFIG_ADDRESS"
-		portEnvKey        = "ISUCON13_MYSQL_DIALCONFIG_PORT"
-		userEnvKey        = "ISUCON13_MYSQL_DIALCONFIG_USER"
-		passwordEnvKey    = "ISUCON13_MYSQL_DIALCONFIG_PASSWORD"
-		dbNameEnvKey      = "ISUCON13_MYSQL_DIALCONFIG_DATABASE"
-		parseTimeEnvKey   = "ISUCON13_MYSQL_DIALCONFIG_PARSETIME"
+		networkTypeEnvKey    = "ISUCON13_MYSQL_DIALCONFIG_NET"
+		addrEnvKey           = "ISUCON13_MYSQL_DIALCONFIG_ADDRESS"
+		portEnvKey           = "ISUCON13_MYSQL_DIALCONFIG_PORT"
+		userEnvKey           = "ISUCON13_MYSQL_DIALCONFIG_USER"
+		passwordEnvKey       = "ISUCON13_MYSQL_DIALCONFIG_PASSWORD"
+		dbNameEnvKey         = "ISUCON13_MYSQL_DIALCONFIG_DATABASE"
+		parseTimeEnvKey      = "ISUCON13_MYSQL_DIALCONFIG_PARSETIME"
+		interpolateParamsKey = "ISUCON13_MYSQL_DIALCONFIG_INTERPOLATE"
 	)
 
 	conf := mysql.NewConfig()
@@ -65,6 +66,7 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 	conf.Passwd = "isucon"
 	conf.DBName = "isupipe"
 	conf.ParseTime = true
+	conf.InterpolateParams = true
 
 	if v, ok := os.LookupEnv(networkTypeEnvKey); ok {
 		conf.Net = v
@@ -93,6 +95,13 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 		conf.ParseTime = parseTime
 	}
 
+	if v, ok := os.LookupEnv(interpolateParamsKey); ok {
+		interpolateParams, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse environment variable '%s' as bool: %+v", interpolateParamsKey, err)
+		}
+		conf.InterpolateParams = interpolateParams
+	}
 	db, err := sqlx.Open("mysql", conf.FormatDSN())
 	if err != nil {
 		return nil, err
