@@ -389,27 +389,12 @@ func moderateHandler(c echo.Context) error {
 	// NGワードにヒットする過去の投稿も全削除する
 	for _, ngword := range ngwords {
 		query := `
-			DELETE 
-			FROM
-				livecomments 
+			DELETE FROM livecomments
 			WHERE
-				livestream_id = ? 
-				AND ( 
-					SELECT
-						COUNT(*) 
-					FROM
-						( 
-							SELECT
-								comment 
-							FROM
-								livecomments 
-							WHERE
-								livecomments.livestream_id = ? 
-								AND livecomments.comment LIKE CONCAT('%', ?, '%')
-						) AS comments
-				) >= 1;
+			  livestream_id = ? AND
+			  livecomments.comment LIKE CONCAT('%', ?, '%');
 			`
-		if _, err := tx.ExecContext(ctx, query, livestreamID, livestreamID, ngword.Word); err != nil {
+		if _, err := tx.ExecContext(ctx, query, livestreamID, ngword.Word); err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete old livecomments that hit spams: "+err.Error())
 		}
 	}
