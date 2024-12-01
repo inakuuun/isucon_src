@@ -25,9 +25,19 @@ type TagsResponse struct {
 func getTagHandler(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	tx, err := dbConn.BeginTxx(ctx, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to begin new transaction: : "+err.Error()+err.Error())
+	}
+	defer tx.Rollback()
+
 	var tagModels []*TagModel
-	if err := dbConn.SelectContext(ctx, &tagModels, "SELECT * FROM tags"); err != nil {
+	if err := tx.SelectContext(ctx, &tagModels, "SELECT * FROM tags"); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get tags: "+err.Error())
+	}
+
+	if err := tx.Commit(); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
 	tags := make([]*Tag, len(tagModels))
@@ -73,10 +83,6 @@ func getStreamerThemeHandler(c echo.Context) error {
 	themeModel := ThemeModel{}
 	if err := tx.GetContext(ctx, &themeModel, "SELECT * FROM themes WHERE user_id = ?", userModel.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user theme: "+err.Error())
-	}
-
-	if err := tx.Commit(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
 	theme := Theme{
