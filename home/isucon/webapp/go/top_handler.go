@@ -85,10 +85,6 @@ func getStreamerThemeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user theme: "+err.Error())
 	}
 
-	if err := tx.Commit(); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
-	}
-
 	theme := Theme{
 		ID:       themeModel.ID,
 		DarkMode: themeModel.DarkMode,
