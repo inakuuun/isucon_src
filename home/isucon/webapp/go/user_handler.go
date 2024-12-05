@@ -127,7 +127,7 @@ func postIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
 	}
 	// iconsを画像に変換して保存
-	err := os.Mkdir(fmt.Sprintf("%s", iconsPath), 0755)
+	err := os.Mkdir(iconsDir, 0755)
 	if err != nil {
 		// 既に存在する場合は無視
 		if !errors.Is(err, os.ErrExist) {
@@ -135,7 +135,7 @@ func postIconHandler(c echo.Context) error {
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
-	err = os.WriteFile(fmt.Sprintf("%s/%d.jpg", iconsPath, userID), req.Image, 0644)
+	err = os.WriteFile(fmt.Sprintf("%s/%d.jpg", iconsDir, userID), req.Image, 0644)
 
 	if err != nil {
 		c.Logger().Errorf("failed to write icon file: %v", err)
@@ -380,7 +380,7 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 		return User{}, err
 	}
 
-	image, err := os.ReadFile(fmt.Sprintf("%s/%d.jpg", iconsPath, userModel.ID))
+	image, err := os.ReadFile(fmt.Sprintf("%s/%d.jpg", iconsDir, userModel.ID))
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return User{}, err

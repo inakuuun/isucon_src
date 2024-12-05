@@ -26,7 +26,7 @@ import (
 const (
 	listenPort                     = 8080
 	powerDNSSubdomainAddressEnvKey = "ISUCON13_POWERDNS_SUBDOMAIN_ADDRESS"
-	iconsPath                      = "../public/icons"
+	iconsDir                       = "../public/icons"
 )
 
 var (
@@ -44,6 +44,11 @@ func init() {
 
 type InitializeResponse struct {
 	Language string `json:"language"`
+}
+
+type DbIcons struct {
+	UserID int64  `db:"user_id"`
+	Image  []byte `db:"image"`
 }
 
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
@@ -136,30 +141,27 @@ func initializeHandler(c echo.Context) error {
 
 func initializeIcons() error {
 	// iconsディレクトリを削除
-	err := os.RemoveAll(iconsPath)
+	err := os.RemoveAll(iconsDir)
 	if err != nil {
 		return err
 	}
 
+	var dbIcons []DbIcons
 	// user_idとimageを取得
-	var icons []struct {
-		UserID int64  `db:"user_id"`
-		Image  []byte `db:"image"`
-	}
-	if err := dbConn.Select(&icons, "SELECT user_id, image FROM icons"); err != nil {
+	if err := dbConn.Select(&dbIcons, "SELECT user_id, image FROM icons"); err != nil {
 		return err
 	}
 
 	// iconsディレクトリを作成
-	err = os.Mkdir(iconsPath, 0755)
+	err = os.Mkdir(iconsDir, 0755)
 	if err != nil {
 		// 既に存在する場合は無視
 		if !errors.Is(err, os.ErrExist) {
 			return err
 		}
 	}
-	for _, icon := range icons {
-		err = os.WriteFile(fmt.Sprintf("%s/%d.jpg", iconsPath, icon.UserID), icon.Image, 0644)
+	for _, dbIcon := range dbIcons {
+		err = os.WriteFile(fmt.Sprintf("%s/%d.jpg", iconsDir, dbIcon.UserID), dbIcon.Image, 0644)
 		if err != nil {
 			return err
 		}
