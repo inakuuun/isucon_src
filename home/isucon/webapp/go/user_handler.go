@@ -104,11 +104,21 @@ func getIconHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user: "+err.Error())
 	}
 
-	// nginxに任せる
-	uri := fmt.Sprintf("/icons/%d.jpg", user.ID)
-	c.Response().Header().Set("X-Accel-Redirect", uri)
+	image, err := os.ReadFile(fmt.Sprintf("%s/%d.jpg", iconsDir, user.ID))
+	if err != nil {
+		// ファイルが存在しないエラーの場合
+		if errors.Is(err, os.ErrNotExist) {
+			// NoImage.jpgを返却
+			image, err = os.ReadFile(fallbackImage)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user icon: "+err.Error())
+			}
+		} else {
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user icon: "+err.Error())
+		}
+	}
 
-	return c.NoContent(http.StatusOK)
+	return c.Blob(http.StatusOK, "image/jpeg", image)
 }
 
 func postIconHandler(c echo.Context) error {
@@ -382,11 +392,14 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 
 	image, err := os.ReadFile(fmt.Sprintf("%s/%d.jpg", iconsDir, userModel.ID))
 	if err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			return User{}, err
-		}
-		image, err = os.ReadFile(fallbackImage)
-		if err != nil {
+		// ファイルが存在しないエラーの場合
+		if errors.Is(err, os.ErrNotExist) {
+			// NoImage.jpgを返却
+			image, err = os.ReadFile(fallbackImage)
+			if err != nil {
+				return User{}, err
+			}
+		} else {
 			return User{}, err
 		}
 	}
