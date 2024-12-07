@@ -4,6 +4,7 @@ package main
 // sqlx的な参考: https://jmoiron.github.io/sqlx/
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -25,6 +26,7 @@ import (
 const (
 	listenPort                     = 8080
 	powerDNSSubdomainAddressEnvKey = "ISUCON13_POWERDNS_SUBDOMAIN_ADDRESS"
+	iconsDir                       = "../public/icons"
 )
 
 var (
@@ -42,6 +44,11 @@ func init() {
 
 type InitializeResponse struct {
 	Language string `json:"language"`
+}
+
+type DbIcons struct {
+	UserID int64  `db:"user_id"`
+	Image  []byte `db:"image"`
 }
 
 func connectDB(logger echo.Logger) (*sqlx.DB, error) {
@@ -121,10 +128,46 @@ func initializeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
 	}
 
+	if err := initializeIcons(); err != nil {
+		c.Logger().Warnf("initializeIcons failed with err=%s", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
+	}
+
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "golang",
 	})
+}
+
+func initializeIcons() error {
+	// iconsディレクトリを削除
+	err := os.RemoveAll(iconsDir)
+	if err != nil {
+		return err
+	}
+
+	var dbIcons []DbIcons
+	// user_idとimageを取得
+	if err := dbConn.Select(&dbIcons, "SELECT user_id, image FROM icons"); err != nil {
+		return err
+	}
+
+	// iconsディレクトリを作成
+	err = os.Mkdir(iconsDir, 0755)
+	if err != nil {
+		// 既に存在する場合は無視
+		if !errors.Is(err, os.ErrExist) {
+			return err
+		}
+	}
+	for _, dbIcon := range dbIcons {
+		err = os.WriteFile(fmt.Sprintf("%s/%d.jpg", iconsDir, dbIcon.UserID), dbIcon.Image, 0644)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func main() {
